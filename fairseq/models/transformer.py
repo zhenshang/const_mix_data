@@ -664,6 +664,7 @@ class TransformerDecoder(FairseqIncrementalDecoder):
         alignment_heads: Optional[int] = None,
         src_lengths: Optional[Any] = None,
         return_all_hiddens: bool = False,
+        need_layer_attn: bool = False,
     ):
         """
         Args:
@@ -683,6 +684,7 @@ class TransformerDecoder(FairseqIncrementalDecoder):
                 - the decoder's output of shape `(batch, tgt_len, vocab)`
                 - a dictionary with any model-specific outputs
         """
+        # print("是在使用这个吗")
         x, extra = self.extract_features(
             prev_output_tokens,
             encoder_out=encoder_out,
@@ -690,7 +692,9 @@ class TransformerDecoder(FairseqIncrementalDecoder):
             full_context_alignment=full_context_alignment,
             alignment_layer=alignment_layer,
             alignment_heads=alignment_heads,
+            need_layer_attn=need_layer_attn,
         )
+        
         if not features_only:
             x = self.output_layer(x)
         return x, extra
@@ -703,15 +707,23 @@ class TransformerDecoder(FairseqIncrementalDecoder):
         full_context_alignment: bool = False,
         alignment_layer: Optional[int] = None,
         alignment_heads: Optional[int] = None,
+        need_layer_attn: bool = False,
     ):
-        return self.extract_features_scriptable(
+        x, extra = self.extract_features_scriptable(
             prev_output_tokens,
             encoder_out,
             incremental_state,
             full_context_alignment,
             alignment_layer,
             alignment_heads,
+            need_layer_attn,
         )
+        # print("是在使用这个吗1111")
+        # print(x)
+        
+        # print("是在使用这个吗extra")
+        # print(extra)
+        return x, extra
 
     """
     A scriptable subclass of this class has an extract_features method and calls
@@ -727,6 +739,7 @@ class TransformerDecoder(FairseqIncrementalDecoder):
         full_context_alignment: bool = False,
         alignment_layer: Optional[int] = None,
         alignment_heads: Optional[int] = None,
+        need_layer_attn: bool = False,
     ):
         """
         Similar to *forward* but only return features.
@@ -765,6 +778,7 @@ class TransformerDecoder(FairseqIncrementalDecoder):
                 positions = positions[:, -1:]
 
         # embed tokens and positions
+        
         x = self.embed_scale * self.embed_tokens(prev_output_tokens)
 
         if self.quant_noise is not None:
@@ -791,6 +805,7 @@ class TransformerDecoder(FairseqIncrementalDecoder):
         # decoder layers
         attn: Optional[Tensor] = None
         inner_states: List[Optional[Tensor]] = [x]
+        all_layer_attn = []
         for idx, layer in enumerate(self.layers):
             if incremental_state is None and not full_context_alignment:
                 self_attn_mask = self.buffered_future_mask(x)
@@ -804,10 +819,12 @@ class TransformerDecoder(FairseqIncrementalDecoder):
                 incremental_state,
                 self_attn_mask=self_attn_mask,
                 self_attn_padding_mask=self_attn_padding_mask,
-                need_attn=bool((idx == alignment_layer)),
-                need_head_weights=bool((idx == alignment_layer)),
+                need_attn=True,
+                need_head_weights=True,
             )
             inner_states.append(x)
+            if need_layer_attn:
+                all_layer_attn.append(layer_attn.float().to(x))
             if layer_attn is not None and idx == alignment_layer:
                 attn = layer_attn.float().to(x)
 
@@ -817,6 +834,12 @@ class TransformerDecoder(FairseqIncrementalDecoder):
 
             # average probabilities over heads
             attn = attn.mean(dim=0)
+        
+        if all_layer_attn is not None:
+            for i in range(len(all_layer_attn)):
+                if alignment_heads is not None:
+                    all_layer_attn[i] = all_layer_attn[i][:alignment_heads]
+                all_layer_attn[i] = all_layer_attn[i].mean(dim=0)
 
         if self.layer_norm is not None:
             x = self.layer_norm(x)
@@ -826,7 +849,13 @@ class TransformerDecoder(FairseqIncrementalDecoder):
 
         if self.project_out_dim is not None:
             x = self.project_out_dim(x)
-
+        # print('测试')
+        # print(attn)
+        # print(inner_states)
+        # print('测试')
+        # return x, [attn]
+        if need_layer_attn:
+            return x, {"attn": [attn], "inner_states": inner_states,"all_layer_attn": all_layer_attn}
         return x, {"attn": [attn], "inner_states": inner_states}
 
     def output_layer(self, features):

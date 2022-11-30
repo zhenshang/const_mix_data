@@ -171,7 +171,7 @@ def get_raw_waveform_from_audio(
     return get_segment_waveform(path, byte_offset, byte_size)[0]
 
 
-def get_features_or_waveform(path: str, need_waveform=False):
+def get_features_or_waveform(path: str, need_waveform=False,start= None,nframes = None):
     """Get speech features from .npy file or waveform from .wav/.flac file.
     The file may be inside an uncompressed ZIP file and is accessed via byte
     offset and length.
@@ -198,8 +198,12 @@ def get_features_or_waveform(path: str, need_waveform=False):
                 _path, extra[0], extra[1], need_waveform=need_waveform
             )
         else: # _path.endswith(".wav")
-            features_or_waveform = get_raw_waveform_from_audio(
-                _path, extra[0], extra[1])
+            if nframes is not None:
+                features_or_waveform = get_raw_waveform_from_audio(
+                    _path, start, nframes)
+            else:
+                features_or_waveform = get_raw_waveform_from_audio(
+                    _path, extra[0], extra[1])
     else:
         raise ValueError(f"Invalid path: {path}")
 

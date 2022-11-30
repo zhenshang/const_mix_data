@@ -107,7 +107,10 @@ class XSTNet(FairseqEncoderDecoderModel):
         encoder_out = self.encoder(src_tokens, src_lengths, is_text_input=is_text_input)
         decoder_out = self.decoder(prev_output_tokens=prev_output_tokens,
                                    encoder_out=encoder_out)
+        
         if self.training:
+            # print('**************************')
+            # print(decoder_out)
             return decoder_out, encoder_out
         return decoder_out
 

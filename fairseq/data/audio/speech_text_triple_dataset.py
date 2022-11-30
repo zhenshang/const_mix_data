@@ -81,7 +81,9 @@ class SpeechTextTripleDataset(SpeechToTextDataset):
                 audio = torch.from_numpy(audio).float()
             if self.data_cfg.use_audio_input:
                 audio = audio.squeeze(0)
-
+        # print(self.src_texts[index])
+        # print(type(audio))
+        # print(audio.size())
         src_text = None
         if self.src_texts is not None:
             tokenized = self.tokenize_text(self.src_texts[index])
@@ -122,7 +124,7 @@ class SpeechTextTripleDataset(SpeechToTextDataset):
         else:
             frames, n_frames = None, None
             order = indices
-        # process source text
+        # process source text 
         source, source_lengths = None, None
         prev_output_source_tokens = None
         src_ntokens = None

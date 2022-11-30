@@ -50,6 +50,7 @@ class MultiTaskCrossEntropyWithContrastiveWithExtraMT(LabelSmoothedCrossEntropyW
         _net_output = model(**sample["net_input"])  # (x, extra)
         if model.training:
             net_output, encoder_out = _net_output
+            # print(sample["target"].size())
             if (sample["dataset_type"] != "mt") and (self.contrastive_weight > 0):
                 contrastive_loss, short_audio_len = self.compute_contrastive_loss(
                     model, sample, encoder_out,
@@ -116,6 +117,10 @@ class MultiTaskCrossEntropyWithContrastiveWithExtraMT(LabelSmoothedCrossEntropyW
                               sample["prev_output_src_tokens"])
         lprobs = model.get_normalized_probs(net_output, log_probs=True)
         target = sample["source"]
+        # print('************************************')
+        # print(lprobs.size())
+        # print(target.size())
+        # print(sample["nsentences"])
         if self.ignore_prefix_size > 0:
             if getattr(lprobs, "batch_first", False):
                 lprobs = lprobs[:, self.ignore_prefix_size:, :].contiguous()

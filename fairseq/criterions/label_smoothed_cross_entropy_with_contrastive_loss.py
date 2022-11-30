@@ -20,6 +20,10 @@ class LabelSmoothedCrossEntropyWithContrastiveCriterion(LabelSmoothedCrossEntrop
         ignore_prefix_size=0,
         report_accuracy=False,
         contrastive_weight=0.0,
+        attn_weight = 0.0,
+        start_kl = 0,
+        use_tag = False,
+        need_all_layer_attn = False,
         contrastive_temperature=1.0,
         use_dual_ctr=False,
         ctr_dropout_rate=0.0,
@@ -30,8 +34,11 @@ class LabelSmoothedCrossEntropyWithContrastiveCriterion(LabelSmoothedCrossEntrop
         self.ignore_prefix_size = ignore_prefix_size
         self.report_accuracy = report_accuracy
         self.contrastive_weight = contrastive_weight
+        self.attn_weight = attn_weight
+        self.use_tag = use_tag
+        self.need_all_layer_attn = need_all_layer_attn
         self.contrastive_temperature = contrastive_temperature
-
+        self.start_kl = start_kl
         self.use_dual_ctr = use_dual_ctr
         self.ctr_dropout_rate = ctr_dropout_rate
 
@@ -41,13 +48,21 @@ class LabelSmoothedCrossEntropyWithContrastiveCriterion(LabelSmoothedCrossEntrop
         LabelSmoothedCrossEntropyCriterion.add_args(parser)
         parser.add_argument('--contrastive-weight', default=0., type=float,
                             help='the weight of contrastive loss')
+        parser.add_argument('--attn-weight', default=0., type=float,
+                            help='the weight of attn loss')
+        parser.add_argument('--use-tag', action='store_true', default=False,
+                            help='use tag to generate st attn')
+        parser.add_argument('--need-all-layer-attn', action='store_true', default=False,
+                            help='need all layer attn to compute attn loss')
+        parser.add_argument('--start-kl', default=10000, type=int,
+                            help='the start num updates to compute kl')
         parser.add_argument('--contrastive-temperature', default=1.0, type=float,
                             help='the temperature in the contrastive loss')
         parser.add_argument('--contrastive-seqlen-type', default='src_text', type=str,
                             choices=['src_text', 'transcript',
                                      'audio_short', 'none'],
                             help='which type of length to times to the contrastive loss')
-
+        
         parser.add_argument("--use-dual-ctr", action="store_true",
                             help="if we want to use dual contrastive loss")
         parser.add_argument("--ctr-dropout-rate", default=0., type=float,

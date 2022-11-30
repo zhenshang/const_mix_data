@@ -378,17 +378,19 @@ class TransformerDecoderScriptable(TransformerDecoder):
         full_context_alignment: bool = False,
         alignment_layer: Optional[int] = None,
         alignment_heads: Optional[int] = None,
+        need_layer_attn: bool = False,
     ):
         # call scriptable method from parent class
-        x, _ = self.extract_features_scriptable(
+        x, extra = self.extract_features_scriptable(
             prev_output_tokens,
             encoder_out,
             incremental_state,
             full_context_alignment,
             alignment_layer,
             alignment_heads,
+            need_layer_attn,
         )
-        return x, None
+        return x, extra
 
 
 @register_model_architecture(model_name="s2t_transformer", arch_name="s2t_transformer")

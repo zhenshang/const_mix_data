@@ -190,8 +190,18 @@ class SequenceGenerator(nn.Module):
                 for i in range(self.model.models_size)
             ],
         )
+        # print('**********this is SequenceGenerator***********')
+        # print(prefix_tokens)
+        # prefix_tokens = prefix_tokens - 1
         net_input = sample["net_input"]
-
+        # print(sample.keys()) dict_keys(['id', 'net_input', 'target', 'target_lengths', 'ntokens', 'nsentences'])
+        # net_input = {
+        #         "src_tokens": sample["source"],
+        #         "src_lengths": sample["source_lengths"],
+        #         "prev_output_tokens": sample["net_input"]["prev_output_tokens"],
+        #     }
+        # net_output, _ = model(sample["source"], sample["source_lengths"],
+        #                 sample["net_input"]["prev_output_tokens"], is_text_input=True)
         if "src_tokens" in net_input:
             src_tokens = net_input["src_tokens"]
             # length of the source text being the character length except EndOfSentence and pad
@@ -234,6 +244,11 @@ class SequenceGenerator(nn.Module):
             self.min_len <= max_len
         ), "min_len cannot be larger than max_len, please adjust these!"
         # compute the encoder output for each beam
+        # "net_input": {
+        #         "src_tokens": frames,
+        #         "src_lengths": n_frames,
+        #         "prev_output_tokens": prev_output_target_tokens,
+        #     },
         encoder_outs = self.model.forward_encoder(net_input)
 
         # placeholder of indices for bsz * beam_size to hold tokens and accumulative scores
@@ -314,7 +329,9 @@ class SequenceGenerator(nn.Module):
                 incremental_states,
                 self.temperature,
             )
-
+            # print("**************现在在attn*************")
+            # print(self.model.models_size)
+            # print(avg_attn_scores)
             if self.lm_model is not None:
                 lm_out = self.lm_model(tokens[:, : step + 1])
                 probs = self.lm_model.get_normalized_probs(
@@ -539,6 +556,30 @@ class SequenceGenerator(nn.Module):
             finalized[sent] = torch.jit.annotate(
                 List[Dict[str, Tensor]], finalized[sent]
             )
+        displays = [452,485,534,618,729,556,1309,1338]
+        # print('***************************')
+        # print(finalized[0])
+        for val in displays:
+            if val in sample["id"].data:
+                idx = 0
+                for idx_, id_ in enumerate(sample["id"].data):
+                    if id_ == val:
+                        idx = idx_
+                        break
+                import seaborn as sns
+                import matplotlib.pyplot as plt
+                # if skim_mask is not None:
+                #     for skim_ in skim_mask:
+                #         print(skim_[:, sorted_scores_indices[0]])
+                # plt.figure(figsize=(20, 12))
+                # for i in range(len(attns_display)):
+                #     plt.subplot(2, 3, i + 1)
+                #     sns.heatmap(attns_display[i][sorted_scores_indices[0], :, 1:finalized[0][0]["attention"].size()[-1] + 1].cpu(), square=True, cmap="YlGnBu", yticklabels=1, xticklabels=1)
+                # plt.savefig("/home/hrsun/Speech/layer_decoder_cross.png")
+                plt.figure(figsize=(12, 10))
+
+                sns.heatmap(finalized[idx][0]["attention"].cpu(), square=True, cmap="YlGnBu", yticklabels=1, xticklabels=1)
+                plt.savefig("/data/zxh/st/ConST/fig_ru/en-ru-st-cross-attn-{}.png".format(val))
         return finalized
 
     def _prefix_tokens(
@@ -667,7 +708,7 @@ class SequenceGenerator(nn.Module):
                     hypo_attn = attn_clone[i]
                 else:
                     hypo_attn = torch.empty(0)
-
+                
                 finalized[sent].append(
                     {
                         "tokens": tokens_clone[i],
@@ -818,6 +859,9 @@ class EnsembleModel(nn.Module):
             if self.has_encoder():
                 encoder_out = encoder_outs[i]
             # decode each model
+            # print("*************forward_decoder*************")
+            # print(self.has_incremental_states())
+            # print(incremental_states[i])
             if self.has_incremental_states():
                 decoder_out = model.decoder.forward(
                     tokens,
@@ -829,6 +873,7 @@ class EnsembleModel(nn.Module):
 
             attn: Optional[Tensor] = None
             decoder_len = len(decoder_out)
+            
             if decoder_len > 1 and decoder_out[1] is not None:
                 if isinstance(decoder_out[1], Tensor):
                     attn = decoder_out[1]
@@ -838,6 +883,8 @@ class EnsembleModel(nn.Module):
                         attn = attn_holder
                     elif attn_holder is not None:
                         attn = attn_holder[0]
+                # print("attn")
+                # print(attn.size())
                 if attn is not None:
                     attn = attn[:, -1, :]
 

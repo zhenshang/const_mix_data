@@ -17,6 +17,10 @@ from fairseq.data.audio.speech_text_triple_dataset import (
     SpeechTextTripleDataset,
     SpeechTextTripleDatasetCreator
 )
+from fairseq.data.audio.speech_text_mix_triple_dataset import (
+    SpeechTextMixTripleDataset,
+    SpeechTextMixTripleDatasetCreator
+)
 from fairseq.data.audio.speech_to_text_dataset import (
     S2TDataConfig,
     get_features_or_waveform,
@@ -81,6 +85,8 @@ class SpeechToTextTripletWithExtraMTTask(LegacyFairseqTask):
                             help='args for building the bpe, if needed')
         parser.add_argument('--eval-bleu-bpe-path', type=str, metavar='BPE',
                             help='args for building the bpe, if needed')
+        parser.add_argument('--mix-rate', type=float, metavar="N",
+                            help="mix_audio_rate")
 
     def __init__(self, args, tgt_dict):
         super().__init__(args)
@@ -158,7 +164,7 @@ class SpeechToTextTripletWithExtraMTTask(LegacyFairseqTask):
             bpe_tokenizer,
             is_train_split=is_train_split,
             epoch=epoch,
-            seed=self.args.seed
+            seed=self.args.seed,
         )
         text_dataset = None
         if self.args.external_parallel_mt_data is not None and is_train_split:
@@ -369,7 +375,7 @@ class SpeechToTextTripletWithExtraMTTask(LegacyFairseqTask):
 
     def inference_step(
         self, generator, models, sample, prefix_tokens=None, constraints=None
-    ):
+    ): 
         if self.args.lang_prefix_tok is None:
             prefix_tokens = None
         else:
@@ -387,7 +393,7 @@ class SpeechToTextTripletWithExtraMTTask(LegacyFairseqTask):
                 if isinstance(prefix_tokens, int):
                     prefix_tokens = torch.LongTensor([prefix_tokens]).unsqueeze(1)
                     prefix_tokens = prefix_tokens.expand(bsz, -1).to(src_tokens.device)
-
+            
             return generator.generate(
                 models,
                 sample,
