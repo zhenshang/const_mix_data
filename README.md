@@ -1,11 +1,5 @@
-# ConST: Cross-modal Contrastive Learning for Speech Translation 
-
-
-This is an implementation of NAACL 2022 paper *"Cross-modal Contrastive Learning for Speech Translation"* (read paper [here](https://arxiv.org/abs/2205.02444)). 
-The implementation based on [fairseq](https://github.com/pytorch/fairseq) codebase.
-
-**CONTRIBUTION:**
-You are also more than welcomed to test our code on your machines, and report feedbacks on results, bugs and performance!
+# Word mix based on ConST
+For more info,read prepare_word_level_mix.sh and train_en2x_mix_data.sh
 
 
 ## ✏️ Citation
