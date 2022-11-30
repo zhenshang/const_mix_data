@@ -1,19 +1,7 @@
-#!/usr/bin/env bash
-
-# TGT_LANG=$1
-# MODEL_DIR=$2
-# shift 1
-
-# download Wav2vec2 model
-
-# mkdir -p checkpoints
-# wget -P checkpoints https://dl.fbaipublicfiles.com/fairseq/wav2vec/wav2vec_small.pt
-
-# mkdir -p ${MODEL_DIR}
-# nohup bash train_en2x.sh >> const_withword.txt &
+# 在const基础上添加了2个新参数,mix-rate为每个单词的替换概率,word-dict-path为数据处理step3生成的语音字典,train-subset为step1生成的数据
 CUDA_VISIBLE_DEVICES=0 python train.py /data/zxh/st/STEMM/data/mustc \
     --task speech_to_text_triplet_with_extra_mt_mix \
-    --train-subset train_stemm_const2 --valid-subset dev_st \
+    --train-subset train_raw_seg_plus --valid-subset dev_st \
     --config-yaml config_st.yaml \
     --langpairs en-de --lang-prefix-tok "<lang:de>" \
     --max-audio-positions 600000 --max-source-positions 1024 --max-target-positions 1024 \
